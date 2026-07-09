@@ -1,3 +1,4 @@
+import type { Game, GamePlayerStat, Player } from "@prisma/client";
 import { prisma } from "./db";
 import { resolvePlayer, type MatchType } from "./playerMatcher";
 import type { ParsedBoxScore } from "../types";
@@ -10,6 +11,7 @@ export interface PlayerMatchSummary {
 
 export interface SaveGameResult {
   gameId: string;
+  gameNumber: number;
   matches: PlayerMatchSummary[];
 }
 
@@ -69,9 +71,25 @@ export async function saveParsedGame(
     }
   }
 
-  return { gameId: game.id, matches };
+  return { gameId: game.id, gameNumber: game.gameNumber, matches };
 }
 
-export async function deleteGame(gameId: string): Promise<void> {
-  await prisma.game.delete({ where: { id: gameId } });
+export type GameWithStats = Game & { playerStats: (GamePlayerStat & { player: Player })[] };
+
+export async function getGameByNumber(gameNumber: number): Promise<GameWithStats | null> {
+  return prisma.game.findUnique({
+    where: { gameNumber },
+    include: { playerStats: { include: { player: true } } },
+  });
+}
+
+export async function deleteGameByNumber(gameNumber: number): Promise<Game> {
+  const game = await prisma.game.findUnique({ where: { gameNumber } });
+  if (!game) throw new Error(`No game #${gameNumber} found.`);
+  await prisma.game.delete({ where: { id: game.id } });
+  return game;
+}
+
+export async function getRecentGames(limit = 10): Promise<Game[]> {
+  return prisma.game.findMany({ orderBy: { gameNumber: "desc" }, take: limit });
 }

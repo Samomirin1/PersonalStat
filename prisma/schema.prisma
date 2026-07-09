@@ -37,6 +37,7 @@ model PlayerAlias {
 
 model Game {
   id            String   @id @default(cuid())
+  gameNumber    Int      @unique @default(autoincrement()) // human-friendly id, e.g. for /deletegame
   seasonId      String
   season        Season   @relation(fields: [seasonId], references: [id])
   teamAName     String
@@ -56,7 +57,7 @@ model GamePlayerStat {
   gameId     String
   game       Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
   playerId   String
-  player     Player @relation(fields: [playerId], references: [id])
+  player     Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   team       String // "A" | "B" -- matches Game.teamAName / teamBName
   grade      String
   points     Int

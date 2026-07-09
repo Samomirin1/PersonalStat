@@ -14,27 +14,31 @@ stats, leaderboards, wins/losses.
 
 ## How it works
 
-1. Someone posts a box score screenshot (see the format below) in the configured channel, or DMs it to the bot.
+1. Someone posts a box score screenshot (see the format below) in the configured channel, DMs it to the bot, or runs `/upload`.
 2. The bot sends the image to Claude and gets back every player's line for both teams.
-3. It replies with a preview embed and **Save** / **Discard** buttons so you can catch a misread before it's stored.
-4. On **Save**, each gamertag is matched to an existing player (exact match → known alias → fuzzy match on close misspellings → otherwise a new player is created). Fuzzy matches are remembered as aliases so the same OCR quirk resolves instantly next time.
-5. Stats are commands away: `/stats`, `/careerstats`, `/leaderboard`.
+3. It replies with a preview embed showing all the parsed stats, flagging anything that looks off before you commit: 🆕 next to a gamertag that would create a brand-new player, ⚠️ next to one that closely matches an existing player (likely the same person, possibly an OCR misread). **Save** / **Discard** buttons let you catch a bad parse before it's stored.
+4. On **Save**, each gamertag is matched to an existing player (exact match → known alias → fuzzy match on close misspellings → otherwise a new player is created). Fuzzy matches are remembered as aliases so the same OCR quirk resolves instantly next time. The reply tells you the game number it was saved as.
+5. Stats are commands away: `/stats`, `/careerstats`, `/leaderboard`, `/games`.
 
-If the bot ever creates a duplicate profile (e.g. two spellings that were too different to auto-fuzzy-match), run `/merge keep:<name> duplicate:<name>` to fold them into one — it moves every game stat line and remembers the duplicate name as an alias.
+If the bot ever creates a duplicate profile (e.g. two spellings that were too different to auto-fuzzy-match), run `/merge keep:<name> duplicate:<name>` to fold them into one — it moves every game stat line and remembers the duplicate name as an alias. If a game was uploaded by mistake or duplicated, look up its number with `/games` and remove it with `/deletegame`. If someone leaves and shouldn't be tracked anymore, `/removeplayer` deletes their profile and stat lines entirely.
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `/stats gamertag` | Current season stats (GP, W-L, PPG, RPG, APG, shooting splits, etc.) |
-| `/careerstats gamertag` | All-time career stats, same format |
-| `/leaderboard stat [scope] [limit]` | Top players by a stat, current season or career |
-| `/season new name` | End the current season, start a new one (admin) |
-| `/season list` / `/season current` | List seasons / show the active one |
-| `/merge keep duplicate` | Fold a duplicate profile into another (admin) |
-| `/help` | Quick command reference |
+| Command | Who | Description |
+|---|---|---|
+| `/upload screenshot [screenshot2]` | Anyone | Upload a box score screenshot directly (an alternative to just posting the image) |
+| `/stats gamertag` | Anyone | Current season stats (GP, W-L, PPG, RPG, APG, shooting splits, etc.) |
+| `/careerstats gamertag` | Anyone | All-time career stats, same format |
+| `/leaderboard stat [scope] [limit]` | Anyone | Top players by a stat, current season or career |
+| `/games [limit]` | Anyone | List recent games and their `game_number` |
+| `/season new name` | Admin | End the current season, start a new one |
+| `/season list` / `/season current` | Anyone | List seasons / show the active one |
+| `/merge keep duplicate` | Admin | Fold a duplicate profile into another |
+| `/removeplayer gamertag` | Admin | Permanently remove a player and their game stats (e.g. someone left) |
+| `/deletegame game_number` | Admin | Delete a game and every stat line in it (e.g. wrong/duplicate upload) |
+| `/help` | Anyone | Quick command reference |
 
-Admin commands require the **Manage Server** permission, or a specific role set via `ADMIN_ROLE_ID`.
+Admin commands require the **Manage Server** permission, or a specific role set via `ADMIN_ROLE_ID`. Destructive commands (`/removeplayer`, `/deletegame`) show a confirmation with Confirm/Cancel buttons before doing anything.
 
 ## Setup
 

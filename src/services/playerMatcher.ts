@@ -38,6 +38,31 @@ export interface PlayerMatch {
   matchedFrom?: string; // the existing name this fuzzy-matched against, if any
 }
 
+interface FuzzyHit {
+  player: Player;
+  distance: number;
+  matchedFrom: string;
+}
+
+// Read-only: finds the closest existing player/alias, if any is close enough
+// to plausibly be the same gamertag. Never writes anything.
+async function findBestFuzzyMatch(normalized: string): Promise<FuzzyHit | null> {
+  const candidates = await prisma.player.findMany({ include: { aliases: true } });
+
+  let best: FuzzyHit | null = null;
+  for (const candidate of candidates) {
+    const names = [candidate.gamertag, ...candidate.aliases.map((a) => a.alias)];
+    for (const name of names) {
+      const dist = editDistance(normalized, normalize(name));
+      if (best === null || dist < best.distance) {
+        best = { player: candidate, distance: dist, matchedFrom: name };
+      }
+    }
+  }
+
+  return best && best.distance <= maxAllowedDistance(normalized.length) ? best : null;
+}
+
 /**
  * Resolves a raw, possibly OCR-mangled gamertag to a Player row, creating
  * one if nothing close enough already exists. Fuzzy hits get remembered as
@@ -58,20 +83,8 @@ export async function resolvePlayer(rawGamertag: string): Promise<PlayerMatch> {
   });
   if (aliasHit) return { player: aliasHit.player, matchType: "alias" };
 
-  const candidates = await prisma.player.findMany({ include: { aliases: true } });
-
-  let best: { player: Player; distance: number; matchedFrom: string } | null = null;
-  for (const candidate of candidates) {
-    const names = [candidate.gamertag, ...candidate.aliases.map((a) => a.alias)];
-    for (const name of names) {
-      const dist = editDistance(normalized, normalize(name));
-      if (best === null || dist < best.distance) {
-        best = { player: candidate, distance: dist, matchedFrom: name };
-      }
-    }
-  }
-
-  if (best && best.distance <= maxAllowedDistance(normalized.length)) {
+  const best = await findBestFuzzyMatch(normalized);
+  if (best) {
     // Remember this spelling so future exact matches skip fuzzy lookup.
     await prisma.playerAlias
       .create({ data: { alias: trimmed, playerId: best.player.id } })
@@ -81,6 +94,36 @@ export async function resolvePlayer(rawGamertag: string): Promise<PlayerMatch> {
 
   const created = await prisma.player.create({ data: { gamertag: trimmed } });
   return { player: created, matchType: "new" };
+}
+
+export interface MatchPreview {
+  gamertag: string;
+  matchType: MatchType;
+  matchedFrom?: string;
+}
+
+/**
+ * Same lookup as resolvePlayer, but read-only -- used to warn about likely
+ * duplicates/new profiles in a confirmation preview before anything is saved.
+ */
+export async function previewPlayerMatch(rawGamertag: string): Promise<MatchPreview> {
+  const trimmed = rawGamertag.trim();
+  const normalized = normalize(trimmed);
+
+  const exact = await prisma.player.findFirst({
+    where: { gamertag: { equals: trimmed, mode: "insensitive" } },
+  });
+  if (exact) return { gamertag: trimmed, matchType: "exact" };
+
+  const aliasHit = await prisma.playerAlias.findFirst({
+    where: { alias: { equals: trimmed, mode: "insensitive" } },
+  });
+  if (aliasHit) return { gamertag: trimmed, matchType: "alias" };
+
+  const best = await findBestFuzzyMatch(normalized);
+  if (best) return { gamertag: trimmed, matchType: "fuzzy", matchedFrom: best.matchedFrom };
+
+  return { gamertag: trimmed, matchType: "new" };
 }
 
 export async function findPlayerByName(name: string): Promise<Player | null> {
@@ -139,4 +182,18 @@ export async function mergePlayers(keepGamertag: string, duplicateGamertag: stri
   await prisma.player.delete({ where: { id: duplicate.id } });
 
   return { keepGamertag: keep.gamertag, duplicateGamertag: duplicate.gamertag, movedGames: moved.count };
+}
+
+/**
+ * Permanently removes a player, their aliases, and every recorded game stat
+ * line for them (the games themselves, and other players' lines in those
+ * games, are untouched). Use when someone leaves and shouldn't be tracked
+ * anymore.
+ */
+export async function deletePlayer(playerId: string): Promise<Player> {
+  return prisma.player.delete({ where: { id: playerId } });
+}
+
+export async function countPlayerGames(playerId: string): Promise<number> {
+  return prisma.gamePlayerStat.count({ where: { playerId } });
 }

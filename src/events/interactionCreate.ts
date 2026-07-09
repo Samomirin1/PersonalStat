@@ -1,7 +1,8 @@
 import { Events, type ButtonInteraction, type GuildMember, type Interaction } from "discord.js";
 import type { Command } from "../types";
 import { clearPendingGame, getPendingGame } from "../services/pendingGames";
-import { saveParsedGame } from "../services/gameService";
+import { deleteGameByNumber, saveParsedGame } from "../services/gameService";
+import { deletePlayer } from "../services/playerMatcher";
 import { isAdmin } from "../util/permissions";
 
 export const name = Events.InteractionCreate;
@@ -35,6 +36,16 @@ export function makeHandler(commands: Map<string, Command>) {
 
     if (interaction.isButton() && interaction.customId.startsWith("game_")) {
       await handleGameConfirmationButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith("deletegame_")) {
+      await handleDeleteGameButton(interaction);
+      return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith("removeplayer_")) {
+      await handleRemovePlayerButton(interaction);
     }
   };
 }
@@ -74,7 +85,7 @@ async function handleGameConfirmationButton(interaction: ButtonInteraction): Pro
       const newPlayers = result.matches.filter((m) => m.matchType === "new").map((m) => m.gamertag);
       const fuzzyMatches = result.matches.filter((m) => m.matchType === "fuzzy");
 
-      const notes: string[] = ["✅ Saved."];
+      const notes: string[] = [`✅ Saved as Game #${result.gameNumber}.`];
       if (newPlayers.length) notes.push(`New player(s) created: ${newPlayers.join(", ")}`);
       for (const m of fuzzyMatches) {
         notes.push(`Matched "${m.gamertag}" to existing player "${m.matchedFrom}" — use /merge if that's wrong.`);
@@ -84,6 +95,57 @@ async function handleGameConfirmationButton(interaction: ButtonInteraction): Pro
     } catch (err) {
       console.error("Failed to save game:", err);
       await interaction.editReply({ content: "Something went wrong saving that game.", embeds: [], components: [] });
+    }
+  }
+}
+
+async function handleDeleteGameButton(interaction: ButtonInteraction): Promise<void> {
+  const [, action, numberStr] = interaction.customId.split("_");
+  const gameNumber = Number(numberStr);
+  if (!Number.isFinite(gameNumber)) return;
+
+  if (!isAdmin(interaction.member as GuildMember | null)) {
+    await interaction.reply({ content: "Admin only.", ephemeral: true });
+    return;
+  }
+
+  if (action === "cancel") {
+    await interaction.update({ content: "Cancelled.", embeds: [], components: [] });
+    return;
+  }
+
+  if (action === "confirm") {
+    try {
+      await deleteGameByNumber(gameNumber);
+      await interaction.update({ content: `🗑️ Deleted game #${gameNumber}.`, embeds: [], components: [] });
+    } catch (err) {
+      console.error("Failed to delete game:", err);
+      await interaction.update({ content: `Couldn't delete game #${gameNumber}.`, embeds: [], components: [] });
+    }
+  }
+}
+
+async function handleRemovePlayerButton(interaction: ButtonInteraction): Promise<void> {
+  const [, action, playerId] = interaction.customId.split("_");
+  if (!playerId) return;
+
+  if (!isAdmin(interaction.member as GuildMember | null)) {
+    await interaction.reply({ content: "Admin only.", ephemeral: true });
+    return;
+  }
+
+  if (action === "cancel") {
+    await interaction.update({ content: "Cancelled.", embeds: [], components: [] });
+    return;
+  }
+
+  if (action === "confirm") {
+    try {
+      const removed = await deletePlayer(playerId);
+      await interaction.update({ content: `🗑️ Removed **${removed.gamertag}** from the tracker.`, embeds: [], components: [] });
+    } catch (err) {
+      console.error("Failed to remove player:", err);
+      await interaction.update({ content: "Couldn't remove that player.", embeds: [], components: [] });
     }
   }
 }
