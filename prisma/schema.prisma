@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(false)
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  games     Game[]
+
+  @@index([isActive])
+}
+
+model Player {
+  id         String           @id @default(cuid())
+  gamertag   String           @unique
+  createdAt  DateTime         @default(now())
+  aliases    PlayerAlias[]
+  gameStats  GamePlayerStat[]
+}
+
+// Alternate spellings of a gamertag (OCR misreads, old duplicate profiles
+// folded in via /merge) that should resolve to the same Player.
+model PlayerAlias {
+  id       String @id @default(cuid())
+  alias    String @unique
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model Game {
+  id            String   @id @default(cuid())
+  seasonId      String
+  season        Season   @relation(fields: [seasonId], references: [id])
+  teamAName     String
+  teamBName     String
+  teamAScore    Int
+  teamBScore    Int
+  submittedBy   String // Discord user id of whoever posted the screenshot
+  screenshotUrl String?
+  playedAt      DateTime @default(now())
+  playerStats   GamePlayerStat[]
+
+  @@index([seasonId])
+}
+
+model GamePlayerStat {
+  id         String @id @default(cuid())
+  gameId     String
+  game       Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId   String
+  player     Player @relation(fields: [playerId], references: [id])
+  team       String // "A" | "B" -- matches Game.teamAName / teamBName
+  grade      String
+  points     Int
+  rebounds   Int
+  assists    Int
+  steals     Int
+  blocks     Int
+  fouls      Int
+  turnovers  Int
+  fgm        Int
+  fga        Int
+  tpm        Int
+  tpa        Int
+  ftm        Int
+  fta        Int
+  won        Boolean
+
+  @@index([playerId])
+  @@index([gameId])
+}
