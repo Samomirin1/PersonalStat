@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import { loadCommands } from "./commandLoader";
+import { registerCommands } from "./registerCommands";
 import { ensureActiveSeason } from "./services/statsService";
 import * as messageCreate from "./events/messageCreate";
 import { makeHandler as makeInteractionHandler } from "./events/interactionCreate";
@@ -10,6 +11,14 @@ async function main() {
   if (!token) throw new Error("DISCORD_TOKEN is not set.");
 
   const commands = await loadCommands();
+
+  // Re-registering on every boot keeps Discord's command list in sync with
+  // the deployed code without a separate manual `deploy-commands` step.
+  try {
+    await registerCommands(commands);
+  } catch (err) {
+    console.error("Failed to register slash commands (bot will still start):", err);
+  }
 
   const client = new Client({
     intents: [

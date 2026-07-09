@@ -63,13 +63,12 @@ Copy `.env.example` to `.env` and fill it in. `SCREENSHOT_CHANNEL_ID` is optiona
 ```bash
 npm install
 npm run prisma:migrate      # creates the database tables (local/dev)
-npm run deploy-commands     # registers the slash commands
-npm run dev                 # run locally
+npm run dev                 # run locally — this also registers the slash commands
 ```
 
 ### 6. Deploy to Railway
 
-Push this repo to GitHub, create a Railway project from it, attach the Postgres plugin, and set the environment variables above (`DATABASE_URL` comes from the Postgres plugin reference). Railway runs `npm run build` then `npm run start`, which applies pending migrations (`prisma migrate deploy`) before starting the bot. Run `npm run deploy-commands` once (locally, pointed at the same `DISCORD_TOKEN`/`DISCORD_CLIENT_ID`) any time you add or change a command.
+Push this repo to GitHub, create a Railway project from it, attach the Postgres plugin, and set the environment variables above (`DATABASE_URL` comes from the Postgres plugin reference). Railway runs `npm run build` then `npm run start`, which applies pending migrations (`prisma migrate deploy`) and re-registers the slash commands with Discord every time the bot boots — so there's no separate manual command-registration step, on Railway or anywhere else. If you ever want to run registration by hand (e.g. to force it without a redeploy), `npm run deploy-commands` still works locally.
 
 ## Box score format
 
