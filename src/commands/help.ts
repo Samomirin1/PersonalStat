@@ -10,9 +10,9 @@ const command: Command = {
       .setTitle("2K Stat Tracker")
       .setDescription(
         [
-          "Post a Team Up **GAME STATS** box score screenshot in the stats channel, or use **/upload**, and I'll parse it automatically.",
+          "Use **/upload** with a Team Up **GAME STATS** box score screenshot to add a game.",
           "",
-          "**/upload screenshot [screenshot2]** — upload a box score screenshot directly",
+          "**/upload screenshot [screenshot2]** — upload a box score screenshot; I'll show you the parsed stats with Save / Edit / Discard buttons before anything is stored",
           "**/stats gamertag** — current season stats",
           "**/careerstats gamertag** — all-time career stats",
           "**/leaderboard stat [scope] [limit]** — top players by a stat",

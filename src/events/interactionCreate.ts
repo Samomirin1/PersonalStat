@@ -1,8 +1,19 @@
-import { Events, type ButtonInteraction, type GuildMember, type Interaction } from "discord.js";
+import {
+  ActionRowBuilder,
+  Events,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  type ButtonInteraction,
+  type GuildMember,
+  type Interaction,
+  type ModalSubmitInteraction,
+} from "discord.js";
 import type { Command } from "../types";
 import { clearPendingGame, getPendingGame } from "../services/pendingGames";
 import { deleteGameByNumber, saveParsedGame } from "../services/gameService";
 import { deletePlayer } from "../services/playerMatcher";
+import { applyEdit, buildPreviewPayload } from "../services/screenshotPipeline";
 import { isAdmin } from "../util/permissions";
 
 export const name = Events.InteractionCreate;
@@ -46,6 +57,11 @@ export function makeHandler(commands: Map<string, Command>) {
 
     if (interaction.isButton() && interaction.customId.startsWith("removeplayer_")) {
       await handleRemovePlayerButton(interaction);
+      return;
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId.startsWith("game_editmodal_")) {
+      await handleEditModalSubmit(interaction);
     }
   };
 }
@@ -73,6 +89,36 @@ async function handleGameConfirmationButton(interaction: ButtonInteraction): Pro
   if (action === "discard") {
     clearPendingGame(token);
     await interaction.update({ content: "❌ Discarded.", embeds: [], components: [] });
+    return;
+  }
+
+  if (action === "edit") {
+    const modal = new ModalBuilder().setCustomId(`game_editmodal_${token}`).setTitle("Edit a stat");
+    const rowInput = new TextInputBuilder()
+      .setCustomId("row")
+      .setLabel("Player gamertag (or teamA / teamB)")
+      .setPlaceholder("e.g. tahjmoney_ or teamA")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+    const fieldInput = new TextInputBuilder()
+      .setCustomId("field")
+      .setLabel("Field to change")
+      .setPlaceholder("gamertag, grade, points, fgm, fga, tpm, tpa, score, ...")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+    const valueInput = new TextInputBuilder()
+      .setCustomId("value")
+      .setLabel("New value")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(rowInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(fieldInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(valueInput)
+    );
+
+    await interaction.showModal(modal);
     return;
   }
 
@@ -147,5 +193,44 @@ async function handleRemovePlayerButton(interaction: ButtonInteraction): Promise
       console.error("Failed to remove player:", err);
       await interaction.update({ content: "Couldn't remove that player.", embeds: [], components: [] });
     }
+  }
+}
+
+async function handleEditModalSubmit(interaction: ModalSubmitInteraction): Promise<void> {
+  const token = interaction.customId.replace("game_editmodal_", "");
+
+  const pending = getPendingGame(token);
+  if (!pending) {
+    await interaction.reply({ content: "This confirmation has expired. Please repost the screenshot.", ephemeral: true });
+    return;
+  }
+
+  const isOwner = interaction.user.id === pending.submittedBy;
+  const admin = isAdmin(interaction.member as GuildMember | null);
+  if (!isOwner && !admin) {
+    await interaction.reply({
+      content: "Only the person who posted this screenshot (or an admin) can edit it.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const row = interaction.fields.getTextInputValue("row");
+  const field = interaction.fields.getTextInputValue("field");
+  const value = interaction.fields.getTextInputValue("value");
+
+  try {
+    const note = applyEdit(pending.parsed, row, field, value);
+    const payload = await buildPreviewPayload(token, pending.parsed, pending.seasonName);
+    if (interaction.isFromMessage()) {
+      await interaction.update({ content: `✏️ ${note}`, embeds: [payload.embed], components: payload.components });
+    } else {
+      await interaction.reply({ content: `✏️ ${note}`, embeds: [payload.embed], components: payload.components });
+    }
+  } catch (err) {
+    await interaction.reply({
+      content: err instanceof Error ? err.message : "Couldn't apply that edit.",
+      ephemeral: true,
+    });
   }
 }

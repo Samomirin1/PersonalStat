@@ -49,7 +49,7 @@ function matchSuffix(preview: MatchPreview | undefined): string {
 function formatTeamLines(team: ParsedTeam, previews: Map<string, MatchPreview>): string {
   const lines = team.players.map((p) => {
     const preview = previews.get(p.gamertag);
-    return `\`${p.grade}\` **${p.gamertag}** — ${p.points} PTS / ${p.rebounds} REB / ${p.assists} AST / ${p.steals} STL / ${p.blocks} BLK / ${p.turnovers} TO${matchSuffix(preview)}`;
+    return `\`${p.grade}\` **${p.gamertag}** — ${p.points} PTS (${p.fgm}/${p.fga} FG, ${p.tpm}/${p.tpa} 3PT) / ${p.rebounds} REB / ${p.assists} AST / ${p.steals} STL / ${p.blocks} BLK / ${p.turnovers} TO${matchSuffix(preview)}`;
   });
   return lines.join("\n") || "—";
 }

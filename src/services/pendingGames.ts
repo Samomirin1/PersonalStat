@@ -4,6 +4,7 @@ import type { ParsedBoxScore } from "../types";
 export interface PendingGame {
   parsed: ParsedBoxScore;
   seasonId: string;
+  seasonName: string;
   submittedBy: string;
   screenshotUrl?: string;
 }

@@ -1,9 +1,9 @@
 # PersonalStat — NBA 2K Team Up Stat Tracker
 
-A Discord bot for the NBA 2K All-Star Team Up server. Post a **GAME STATS**
-box score screenshot in a channel (or DM the bot) and it reads every stat
-with Claude, asks you to confirm, then tracks it — season stats, career
-stats, leaderboards, wins/losses.
+A Discord bot for the NBA 2K All-Star Team Up server. Run `/upload` with a
+**GAME STATS** box score screenshot and it reads every stat with Claude,
+lets you review and fix it, then tracks it — season stats, career stats,
+leaderboards, wins/losses.
 
 ## Stack
 
@@ -14,11 +14,12 @@ stats, leaderboards, wins/losses.
 
 ## How it works
 
-1. Someone posts a box score screenshot (see the format below) in the configured channel, DMs it to the bot, or runs `/upload`.
-2. The bot sends the image to Claude and gets back every player's line for both teams.
-3. It replies with a preview embed showing all the parsed stats, flagging anything that looks off before you commit: 🆕 next to a gamertag that would create a brand-new player, ⚠️ next to one that closely matches an existing player (likely the same person, possibly an OCR misread). **Save** / **Discard** buttons let you catch a bad parse before it's stored.
-4. On **Save**, each gamertag is matched to an existing player (exact match → known alias → fuzzy match on close misspellings → otherwise a new player is created). Fuzzy matches are remembered as aliases so the same OCR quirk resolves instantly next time. The reply tells you the game number it was saved as.
-5. Stats are commands away: `/stats`, `/careerstats`, `/leaderboard`, `/games`.
+1. Someone runs `/upload` with a box score screenshot (see the format below) — up to two images, in case the box score didn't fit in one.
+2. The bot sends the image(s) to Claude and gets back every player's line for both teams, including shooting splits (FGM/FGA, 3PM/3PA).
+3. It replies with a preview embed showing all the parsed stats, flagging anything that looks off before you commit: 🆕 next to a gamertag that would create a brand-new player, ⚠️ next to one that closely matches an existing player (likely the same person, possibly an OCR misread). Three buttons: **Save**, **Edit**, **Discard**.
+4. **Edit** opens a small form — say which player (or `teamA` / `teamB`), which field (`points`, `fgm`, `gamertag`, `score`, ...), and the corrected value. The preview updates immediately so you can fix as many fields as needed before saving.
+5. On **Save**, each gamertag is matched to an existing player (exact match → known alias → fuzzy match on close misspellings → otherwise a new player is created). Fuzzy matches are remembered as aliases so the same OCR quirk resolves instantly next time. The reply tells you the game number it was saved as.
+6. Stats are commands away: `/stats`, `/careerstats`, `/leaderboard`, `/games`.
 
 If the bot ever creates a duplicate profile (e.g. two spellings that were too different to auto-fuzzy-match), run `/merge keep:<name> duplicate:<name>` to fold them into one — it moves every game stat line and remembers the duplicate name as an alias. If a game was uploaded by mistake or duplicated, look up its number with `/games` and remove it with `/deletegame`. If someone leaves and shouldn't be tracked anymore, `/removeplayer` deletes their profile and stat lines entirely.
 
@@ -26,7 +27,7 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 
 | Command | Who | Description |
 |---|---|---|
-| `/upload screenshot [screenshot2]` | Anyone | Upload a box score screenshot directly (an alternative to just posting the image) |
+| `/upload screenshot [screenshot2]` | Anyone | Upload a box score screenshot — the only way to add a game |
 | `/stats gamertag` | Anyone | Current season stats (GP, W-L, PPG, RPG, APG, shooting splits, etc.) |
 | `/careerstats gamertag` | Anyone | All-time career stats, same format |
 | `/leaderboard stat [scope] [limit]` | Anyone | Top players by a stat, current season or career |
@@ -46,9 +47,8 @@ Admin commands require the **Manage Server** permission, or a specific role set 
 
 1. Create an application at the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Under **Bot**, create a bot user, copy the token → `DISCORD_TOKEN`.
-3. Still under **Bot**, enable the **Message Content Intent** (required to read screenshot attachments).
-4. Copy the **Application ID** → `DISCORD_CLIENT_ID`.
-5. Under **OAuth2 → URL Generator**, select scopes `bot` and `applications.commands`, and bot permissions `Send Messages`, `Read Message History`, `Attach Files`, `Use Slash Commands`, `Embed Links`. Use the generated URL to invite the bot to your server.
+3. Copy the **Application ID** → `DISCORD_CLIENT_ID`.
+4. Under **OAuth2 → URL Generator**, select scopes `bot` and `applications.commands`, and bot permissions `Send Messages` and `Embed Links`. Use the generated URL to invite the bot to your server.
 
 ### 2. Anthropic API key
 
@@ -60,7 +60,7 @@ Add the **Postgres** plugin in your Railway project. Railway will expose a `DATA
 
 ### 4. Environment variables
 
-Copy `.env.example` to `.env` and fill it in. `SCREENSHOT_CHANNEL_ID` is optional — leave it blank to let the bot watch every channel it can read, or set it to restrict auto-parsing to one channel.
+Copy `.env.example` to `.env` and fill it in.
 
 ### 5. Install, migrate, run
 
@@ -80,6 +80,8 @@ The bot expects the in-game **GAME STATS** screen (`Y Quit / B Close / A More`),
 
 ## Notes / current limitations
 
+- The bot only reads screenshots submitted via `/upload` — it does not watch channels for posted images.
 - Player identity is matched by gamertag text only (no Discord account linking) — use `/merge` to clean up duplicates.
-- A screenshot pending confirmation lives in memory for 10 minutes; if the bot restarts before you click Save, repost the screenshot.
+- A screenshot pending confirmation (including any edits made to it) lives in memory for 10 minutes; if the bot restarts before you click Save, repost the screenshot.
 - Seasons are manual (`/season new`) — there's no automatic rollover.
+- Image quality matters a lot for accuracy: a native screen capture parses far better than a phone photo of a TV, especially if the photo has large black letterboxing bars — those eat into the resolution budget the vision model has for the actual box score text.
