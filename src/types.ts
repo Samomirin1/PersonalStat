@@ -25,6 +25,7 @@ export interface ParsedTeam {
 export interface ParsedBoxScore {
   teamA: ParsedTeam;
   teamB: ParsedTeam;
+  quartersPlayed: number; // 1-4; less than 4 means the game ended early
 }
 
 export interface Command {

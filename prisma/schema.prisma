@@ -44,6 +44,7 @@ model Game {
   teamBName     String
   teamAScore    Int
   teamBScore    Int
+  quartersPlayed Int     @default(4) // <4 means the game ended early and stats were normalized
   submittedBy   String // Discord user id of whoever posted the screenshot
   screenshotUrl String?
   playedAt      DateTime @default(now())

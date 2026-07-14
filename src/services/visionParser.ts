@@ -71,8 +71,13 @@ const BOX_SCORE_TOOL: Anthropic.Tool = {
     properties: {
       teamA: teamSchema,
       teamB: teamSchema,
+      quartersPlayed: {
+        type: "integer",
+        description:
+          "How many quarters were actually completed, from the small per-quarter score breakdown box (columns labeled Q1 Q2 Q3 Q4, usually near the scoreboard/team logos). Count how many of those quarter columns show a numeric score rather than a dash '-' or blank -- that count is quartersPlayed (1-4). If that breakdown isn't visible in the screenshot, use 4.",
+      },
     },
-    required: ["teamA", "teamB"],
+    required: ["teamA", "teamB", "quartersPlayed"],
   },
 };
 
@@ -119,6 +124,8 @@ export async function parseBoxScore(images: ImageInput[]): Promise<ParsedBoxScor
               "Read gamertags character-by-character exactly as displayed -- do not guess or normalize them.",
               "Use each team's TOTAL row (or the large scoreboard number) for that team's score.",
               "If a stat column is cut off or unreadable, use 0 for that field rather than omitting it.",
+              "Also report quartersPlayed: look for the small per-quarter score breakdown (Q1/Q2/Q3/Q4 columns) and",
+              "count how many quarters show an actual number rather than a dash, so we can tell when a game ended early.",
             ].join(" "),
           },
         ],

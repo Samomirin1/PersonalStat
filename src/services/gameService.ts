@@ -30,6 +30,7 @@ export async function saveParsedGame(
       teamBName: parsed.teamB.name,
       teamAScore: parsed.teamA.score,
       teamBScore: parsed.teamB.score,
+      quartersPlayed: parsed.quartersPlayed,
       submittedBy,
       screenshotUrl,
     },

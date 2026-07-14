@@ -21,7 +21,8 @@ const command: Command = {
 
     const lines = games.map((g) => {
       const timestamp = Math.floor(g.playedAt.getTime() / 1000);
-      return `**#${g.gameNumber}** — ${g.teamAName} ${g.teamAScore} @ ${g.teamBName} ${g.teamBScore} · <t:${timestamp}:R>`;
+      const normTag = g.quartersPlayed < 4 ? ` ⚠️ Q${g.quartersPlayed} (normalized)` : "";
+      return `**#${g.gameNumber}** — ${g.teamAName} ${g.teamAScore} @ ${g.teamBName} ${g.teamBScore} · <t:${timestamp}:R>${normTag}`;
     });
 
     const embed = new EmbedBuilder().setColor(0xc9082a).setTitle("Recent Games").setDescription(lines.join("\n"));

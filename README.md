@@ -21,6 +21,10 @@ leaderboards, wins/losses.
 5. On **Save**, each gamertag is matched to an existing player (exact match → known alias → fuzzy match on close misspellings → otherwise a new player is created). Fuzzy matches are remembered as aliases so the same OCR quirk resolves instantly next time. The reply tells you the game number it was saved as.
 6. Stats are commands away: `/stats`, `/careerstats`, `/leaderboard`, `/games`.
 
+### Games that end before the 4th quarter
+
+If a game doesn't reach the 4th quarter (someone quit), the counting stats (PTS, REB, AST, STL, BLK, FOULS, TO, FGM/FGA, 3PM/3PA, FTM/FTA) are automatically scaled up to project what a full 24-minute game (4 × 6-minute quarters) would have looked like — e.g. a game that ended after Q3 gets every counting stat multiplied by 4/3. This is detected from the small Q1/Q2/Q3/Q4 score breakdown in the screenshot, so quitting early no longer hides a bad stat line. Team score and win/loss are left as the real outcome — only individual counting stats are projected. The preview, the save confirmation, `/games`, and `/deletegame` all flag when a game was normalized this way.
+
 If the bot ever creates a duplicate profile (e.g. two spellings that were too different to auto-fuzzy-match), run `/merge keep:<name> duplicate:<name>` to fold them into one — it moves every game stat line and remembers the duplicate name as an alias. If a game was uploaded by mistake or duplicated, look up its number with `/games` and remove it with `/deletegame`. If someone leaves and shouldn't be tracked anymore, `/removeplayer` deletes their profile and stat lines entirely.
 
 ## Commands

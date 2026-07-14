@@ -2,6 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import type { AggregatedStats } from "../services/statsService";
 import type { GameWithStats } from "../services/gameService";
 import type { MatchPreview } from "../services/playerMatcher";
+import { normalizationNote } from "../services/statNormalization";
 import type { ParsedBoxScore, ParsedTeam } from "../types";
 
 const BRAND_COLOR = 0xc9082a; // NBA red
@@ -64,10 +65,14 @@ export function buildBoxScorePreviewEmbed(
     ? "🆕 = will create a new player. ⚠️ = close match to an existing player, will link automatically — use /removeplayer or /merge after saving if that's wrong."
     : undefined;
 
+  const descriptionParts = [`*${seasonName}*`, "Double check the gamertags and score below before saving."];
+  const normNote = normalizationNote(parsed.quartersPlayed);
+  if (normNote) descriptionParts.push(`⚠️ ${normNote} The numbers below already reflect this.`);
+
   const embed = new EmbedBuilder()
     .setColor(0xc9082a)
     .setTitle("Box score parsed — confirm to save")
-    .setDescription(`*${seasonName}*\nDouble check the gamertags and score below before saving.`)
+    .setDescription(descriptionParts.join("\n"))
     .addFields(
       { name: `${parsed.teamA.name} — ${parsed.teamA.score}`, value: formatTeamLines(parsed.teamA, previews) },
       { name: `${parsed.teamB.name} — ${parsed.teamB.score}`, value: formatTeamLines(parsed.teamB, previews) }
@@ -84,10 +89,14 @@ export function buildGameSummaryEmbed(game: GameWithStats): EmbedBuilder {
       .map((s) => `\`${s.grade}\` **${s.player.gamertag}** — ${s.points} PTS`)
       .join("\n") || "—";
 
+  const descriptionParts = [`<t:${Math.floor(game.playedAt.getTime() / 1000)}:f>`];
+  const normNote = normalizationNote(game.quartersPlayed);
+  if (normNote) descriptionParts.push(`⚠️ ${normNote}`);
+
   return new EmbedBuilder()
     .setColor(0xc9082a)
     .setTitle(`Game #${game.gameNumber}`)
-    .setDescription(`<t:${Math.floor(game.playedAt.getTime() / 1000)}:f>`)
+    .setDescription(descriptionParts.join("\n"))
     .addFields(
       { name: `${game.teamAName} — ${game.teamAScore}`, value: formatSide("A") },
       { name: `${game.teamBName} — ${game.teamBScore}`, value: formatSide("B") }

@@ -3,6 +3,7 @@ import { parseBoxScore, type ImageInput } from "./visionParser";
 import { ensureActiveSeason } from "./statsService";
 import { createPendingGame } from "./pendingGames";
 import { previewPlayerMatch, type MatchPreview } from "./playerMatcher";
+import { normalizeParsedBoxScore } from "./statNormalization";
 import { buildBoxScorePreviewEmbed } from "../util/embeds";
 import type { ParsedBoxScore, ParsedPlayerRow, ParsedTeam } from "../types";
 
@@ -45,6 +46,7 @@ export async function processScreenshot(
   screenshotUrl?: string
 ): Promise<ProcessedScreenshot> {
   const parsed = await parseBoxScore(images);
+  normalizeParsedBoxScore(parsed); // scales counting stats up if the game ended before the 4th quarter
   const season = await ensureActiveSeason();
   const token = createPendingGame({ parsed, seasonId: season.id, seasonName: season.name, submittedBy, screenshotUrl });
   const payload = await buildPreviewPayload(token, parsed, season.name);

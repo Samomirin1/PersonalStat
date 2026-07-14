@@ -14,6 +14,7 @@ import { clearPendingGame, getPendingGame } from "../services/pendingGames";
 import { deleteGameByNumber, saveParsedGame } from "../services/gameService";
 import { deletePlayer } from "../services/playerMatcher";
 import { applyEdit, buildPreviewPayload } from "../services/screenshotPipeline";
+import { normalizationNote } from "../services/statNormalization";
 import { isAdmin } from "../util/permissions";
 
 export const name = Events.InteractionCreate;
@@ -132,6 +133,8 @@ async function handleGameConfirmationButton(interaction: ButtonInteraction): Pro
       const fuzzyMatches = result.matches.filter((m) => m.matchType === "fuzzy");
 
       const notes: string[] = [`✅ Saved as Game #${result.gameNumber}.`];
+      const normNote = normalizationNote(pending.parsed.quartersPlayed);
+      if (normNote) notes.push(`⚠️ ${normNote}`);
       if (newPlayers.length) notes.push(`New player(s) created: ${newPlayers.join(", ")}`);
       for (const m of fuzzyMatches) {
         notes.push(`Matched "${m.gamertag}" to existing player "${m.matchedFrom}" — use /merge if that's wrong.`);
