@@ -12,7 +12,7 @@ const command: Command = {
         [
           "Use **/upload** with a Team Up **GAME STATS** box score screenshot to add a game.",
           "",
-          "**/upload screenshot [screenshot2]** — upload a box score screenshot; I'll show you the parsed stats with Save / Edit / Discard buttons before anything is stored",
+          "**/upload screenshot [screenshot2]** — upload a box score screenshot; I'll show you the parsed stats with Save / Edit / Discard buttons before anything is stored (admin)",
           "**/stats gamertag** — current season stats",
           "**/careerstats gamertag** — all-time career stats",
           "**/leaderboard stat [scope] [limit]** — top players by a stat",

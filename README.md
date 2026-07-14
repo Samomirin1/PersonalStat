@@ -31,7 +31,7 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 
 | Command | Who | Description |
 |---|---|---|
-| `/upload screenshot [screenshot2]` | Anyone | Upload a box score screenshot — the only way to add a game |
+| `/upload screenshot [screenshot2]` | Admin | Upload a box score screenshot — the only way to add a game |
 | `/stats gamertag` | Anyone | Current season stats (GP, W-L, PPG, RPG, APG, shooting splits, etc.) |
 | `/careerstats gamertag` | Anyone | All-time career stats, same format |
 | `/leaderboard stat [scope] [limit]` | Anyone | Top players by a stat, current season or career |
