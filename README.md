@@ -32,9 +32,9 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 | Command | Who | Description |
 |---|---|---|
 | `/upload screenshot [screenshot2]` | Admin | Upload a box score screenshot — the only way to add a game |
-| `/stats gamertag` | Anyone | Current season stats (GP, W-L, PPG, RPG, APG, shooting splits, etc.) |
-| `/careerstats gamertag` | Anyone | All-time career stats, same format |
-| `/leaderboard stat [scope] [limit]` | Anyone | Top players by a stat, current season or career |
+| `/stats gamertag [season]` | Anyone | A player's stats for a season (GP, W-L, PPG, RPG, APG, shooting splits, etc.) — defaults to the current season, or pick any past season by name |
+| `/careerstats gamertag` | Anyone | All-time career stats across every season, same format |
+| `/leaderboard stat [scope] [season] [limit]` | Anyone | Top players by a stat — current season, career, or any specific past season by name |
 | `/games [limit]` | Anyone | List recent games and their `game_number` |
 | `/season new name` | Admin | End the current season, start a new one |
 | `/season list` / `/season current` | Anyone | List seasons / show the active one |
@@ -44,6 +44,10 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 | `/help` | Anyone | Quick command reference |
 
 Admin commands require the **Manage Server** permission, or a specific role set via `ADMIN_ROLE_ID`. Destructive commands (`/removeplayer`, `/deletegame`) show a confirmation with Confirm/Cancel buttons before doing anything.
+
+### Rolling to a new season
+
+`/season new name:"Season 2"` never deletes anything — it just marks the current season inactive (with an end date) and starts a fresh active one. `/stats` and `/leaderboard` (without a `season` argument) automatically follow whichever season is active, so player stats effectively "reset" for the new season without losing history. Past seasons stay fully queryable forever: `/stats gamertag season:"Season 1"` and `/leaderboard stat:points season:"Season 1"` work exactly the same as they did while that season was active, and `/careerstats` always reflects every season combined.
 
 ## Setup
 

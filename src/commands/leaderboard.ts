@@ -1,7 +1,13 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../types";
 import { STAT_CHOICES, type StatChoice } from "../types";
-import { getActiveSeason, getLeaderboard, type LeaderboardEntry } from "../services/statsService";
+import {
+  getActiveSeason,
+  getLeaderboard,
+  getSeasonByName,
+  searchSeasonNames,
+  type LeaderboardEntry,
+} from "../services/statsService";
 
 const STAT_LABELS: Record<StatChoice, string> = {
   points: "PPG",
@@ -33,8 +39,15 @@ const command: Command = {
     .addStringOption((option) =>
       option
         .setName("scope")
-        .setDescription("Current season or all-time career")
+        .setDescription("Current season or all-time career (ignored if 'season' is set)")
         .addChoices({ name: "Current Season", value: "season" }, { name: "Career", value: "career" })
+    )
+    .addStringOption((option) =>
+      option
+        .setName("season")
+        .setDescription("A specific season to view, e.g. a past one (overrides scope)")
+        .setRequired(false)
+        .setAutocomplete(true)
     )
     .addIntegerOption((option) =>
       option.setName("limit").setDescription("How many players to show (default 10)").setMinValue(1).setMaxValue(25)
@@ -42,12 +55,25 @@ const command: Command = {
 
   async execute(interaction) {
     const stat = interaction.options.getString("stat", true) as StatChoice;
+    const seasonName = interaction.options.getString("season");
     const scope = (interaction.options.getString("scope") ?? "season") as "season" | "career";
     const limit = interaction.options.getInteger("limit") ?? 10;
 
     let seasonId: string | undefined;
     let scopeLabel = "Career";
-    if (scope === "season") {
+
+    if (seasonName) {
+      const season = await getSeasonByName(seasonName);
+      if (!season) {
+        await interaction.reply({
+          content: `No season named "${seasonName}" found. Use /season list to see available seasons.`,
+          ephemeral: true,
+        });
+        return;
+      }
+      seasonId = season.id;
+      scopeLabel = season.name;
+    } else if (scope === "season") {
       const season = await getActiveSeason();
       if (!season) {
         await interaction.reply({ content: "No active season is set up yet.", ephemeral: true });
@@ -57,7 +83,7 @@ const command: Command = {
       scopeLabel = season.name;
     }
 
-    const entries = await getLeaderboard(scope, stat, seasonId, limit);
+    const entries = await getLeaderboard(seasonId ? "season" : "career", stat, seasonId, limit);
     if (entries.length === 0) {
       await interaction.reply({ content: "No games recorded yet." });
       return;
@@ -75,6 +101,12 @@ const command: Command = {
       .setDescription(`*${scopeLabel}*\n\n${lines.join("\n")}`);
 
     await interaction.reply({ embeds: [embed] });
+  },
+
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused();
+    const matches = await searchSeasonNames(focused);
+    await interaction.respond(matches.map((name) => ({ name, value: name })));
   },
 };
 

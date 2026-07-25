@@ -21,6 +21,19 @@ export async function startNewSeason(name: string): Promise<Season> {
   return prisma.season.create({ data: { name, isActive: true } });
 }
 
+export async function getSeasonByName(name: string): Promise<Season | null> {
+  return prisma.season.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+}
+
+export async function searchSeasonNames(query: string, limit = 25): Promise<string[]> {
+  const seasons = await prisma.season.findMany({
+    where: { name: { contains: query, mode: "insensitive" } },
+    orderBy: { startedAt: "desc" },
+    take: limit,
+  });
+  return seasons.map((s) => s.name);
+}
+
 interface StatRow {
   points: number;
   rebounds: number;
