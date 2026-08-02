@@ -2,7 +2,7 @@ import { SlashCommandBuilder, type GuildMember } from "discord.js";
 import type { Command } from "../types";
 import { fetchImageAsBase64 } from "../services/visionParser";
 import { processScreenshot } from "../services/screenshotPipeline";
-import { isAdmin } from "../util/permissions";
+import { canUpload } from "../util/permissions";
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -19,9 +19,9 @@ const command: Command = {
     ),
 
   async execute(interaction) {
-    if (!isAdmin(interaction.member as GuildMember | null)) {
+    if (!canUpload(interaction.member as GuildMember | null)) {
       await interaction.reply({
-        content: "You need the Manage Server permission (or the configured admin role) to use /upload.",
+        content: "You need the Lobby Leader role (or admin) to use /upload.",
         ephemeral: true,
       });
       return;

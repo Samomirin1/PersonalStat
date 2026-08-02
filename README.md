@@ -31,7 +31,7 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 
 | Command | Who | Description |
 |---|---|---|
-| `/upload screenshot [screenshot2]` | Admin | Upload a box score screenshot — the only way to add a game |
+| `/upload screenshot [screenshot2]` | Admin / Lobby Leader | Upload a box score screenshot — the only way to add a game |
 | `/stats gamertag [season]` | Anyone | A player's stats for a season (GP, W-L, PPG, RPG, APG, shooting splits, etc.) — defaults to the current season, or pick any past season by name |
 | `/careerstats gamertag` | Anyone | All-time career stats across every season, same format |
 | `/leaderboard stat [scope] [season] [limit]` | Anyone | Top players by a stat — current season, career, or any specific past season by name |
@@ -43,7 +43,7 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 | `/deletegame game_number` | Admin | Delete a game and every stat line in it (e.g. wrong/duplicate upload) |
 | `/help` | Anyone | Quick command reference |
 
-Admin commands require the **Manage Server** permission, or a specific role set via `ADMIN_ROLE_ID`. Destructive commands (`/removeplayer`, `/deletegame`) show a confirmation with Confirm/Cancel buttons before doing anything.
+Admin commands require the **Manage Server** permission, or a specific role set via `ADMIN_ROLE_ID`. `/upload` additionally allows a separate role set via `UPLOAD_ROLE_ID` (e.g. "Lobby Leader") without granting access to the admin-only commands. Destructive commands (`/removeplayer`, `/deletegame`) show a confirmation with Confirm/Cancel buttons before doing anything.
 
 ### Rolling to a new season
 
