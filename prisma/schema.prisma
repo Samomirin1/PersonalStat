@@ -10,12 +10,14 @@ datasource db {
 model Season {
   id        String   @id @default(cuid())
   name      String
+  edition   String   @default("2K26") // game version this season belongs to, e.g. "2K26", "2K27"
   isActive  Boolean  @default(false)
   startedAt DateTime @default(now())
   endedAt   DateTime?
   games     Game[]
 
   @@index([isActive])
+  @@index([edition])
 }
 
 model Player {

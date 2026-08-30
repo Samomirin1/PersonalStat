@@ -13,12 +13,18 @@ export async function ensureActiveSeason(): Promise<Season> {
   return prisma.season.create({ data: { name: "Season 1", isActive: true } });
 }
 
-export async function startNewSeason(name: string): Promise<Season> {
+// A normal within-edition rollover (e.g. Season 1 -> Season 2) doesn't need
+// to pass edition -- it's inherited from whatever season was active. Switching
+// game versions (e.g. 2K26 -> 2K27) passes edition explicitly.
+export async function startNewSeason(name: string, edition?: string): Promise<Season> {
+  const previousActive = await getActiveSeason();
+  const resolvedEdition = edition ?? previousActive?.edition ?? "2K26";
+
   await prisma.season.updateMany({
     where: { isActive: true },
     data: { isActive: false, endedAt: new Date() },
   });
-  return prisma.season.create({ data: { name, isActive: true } });
+  return prisma.season.create({ data: { name, edition: resolvedEdition, isActive: true } });
 }
 
 export async function getSeasonByName(name: string): Promise<Season | null> {
@@ -32,6 +38,22 @@ export async function searchSeasonNames(query: string, limit = 25): Promise<stri
     take: limit,
   });
   return seasons.map((s) => s.name);
+}
+
+/** The game edition (e.g. "2K27") of the currently active season, if any. */
+export async function getCurrentEdition(): Promise<string | null> {
+  const active = await getActiveSeason();
+  return active?.edition ?? null;
+}
+
+export async function searchEditions(query: string, limit = 25): Promise<string[]> {
+  const seasons = await prisma.season.findMany({
+    where: { edition: { contains: query, mode: "insensitive" } },
+    distinct: ["edition"],
+    orderBy: { startedAt: "desc" },
+    take: limit,
+  });
+  return seasons.map((s) => s.edition);
 }
 
 interface StatRow {
@@ -122,8 +144,10 @@ export async function getPlayerSeasonStats(playerId: string, seasonId: string): 
   return aggregateRows(rows);
 }
 
-export async function getPlayerCareerStats(playerId: string): Promise<AggregatedStats> {
-  const rows = await prisma.gamePlayerStat.findMany({ where: { playerId } });
+export async function getPlayerCareerStats(playerId: string, edition?: string): Promise<AggregatedStats> {
+  const rows = await prisma.gamePlayerStat.findMany({
+    where: { playerId, ...(edition ? { game: { season: { edition } } } : {}) },
+  });
   return aggregateRows(rows);
 }
 
@@ -159,12 +183,17 @@ export async function getLeaderboard(
   scope: "season" | "career",
   statKey: StatChoice,
   seasonId: string | undefined,
-  limit = 10
+  limit = 10,
+  edition?: string
 ): Promise<LeaderboardEntry[]> {
-  const rows = await prisma.gamePlayerStat.findMany({
-    where: scope === "season" ? { game: { seasonId } } : {},
-    include: { player: true },
-  });
+  const where =
+    scope === "season"
+      ? { game: { seasonId } }
+      : edition
+        ? { game: { season: { edition } } }
+        : {};
+
+  const rows = await prisma.gamePlayerStat.findMany({ where, include: { player: true } });
 
   const byPlayer = new Map<string, { gamertag: string; rows: StatRow[] }>();
   for (const r of rows) {

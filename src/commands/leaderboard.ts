@@ -3,8 +3,10 @@ import type { Command } from "../types";
 import { STAT_CHOICES, type StatChoice } from "../types";
 import {
   getActiveSeason,
+  getCurrentEdition,
   getLeaderboard,
   getSeasonByName,
+  searchEditions,
   searchSeasonNames,
   type LeaderboardEntry,
 } from "../services/statsService";
@@ -39,13 +41,20 @@ const command: Command = {
     .addStringOption((option) =>
       option
         .setName("scope")
-        .setDescription("Current season or all-time career (ignored if 'season' is set)")
+        .setDescription("Current season or career (ignored if 'season' or 'edition' is set)")
         .addChoices({ name: "Current Season", value: "season" }, { name: "Career", value: "career" })
     )
     .addStringOption((option) =>
       option
         .setName("season")
-        .setDescription("A specific season to view, e.g. a past one (overrides scope)")
+        .setDescription("A specific season to view, e.g. a past one (overrides scope and edition)")
+        .setRequired(false)
+        .setAutocomplete(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("edition")
+        .setDescription("A specific game version's career leaderboard, e.g. 2K26 (overrides scope)")
         .setRequired(false)
         .setAutocomplete(true)
     )
@@ -56,11 +65,13 @@ const command: Command = {
   async execute(interaction) {
     const stat = interaction.options.getString("stat", true) as StatChoice;
     const seasonName = interaction.options.getString("season");
+    const editionName = interaction.options.getString("edition");
     const scope = (interaction.options.getString("scope") ?? "season") as "season" | "career";
     const limit = interaction.options.getInteger("limit") ?? 10;
 
     let seasonId: string | undefined;
-    let scopeLabel = "Career";
+    let edition: string | undefined;
+    let scopeLabel: string;
 
     if (seasonName) {
       const season = await getSeasonByName(seasonName);
@@ -73,6 +84,9 @@ const command: Command = {
       }
       seasonId = season.id;
       scopeLabel = season.name;
+    } else if (editionName) {
+      edition = editionName;
+      scopeLabel = `Career — ${editionName}`;
     } else if (scope === "season") {
       const season = await getActiveSeason();
       if (!season) {
@@ -81,9 +95,12 @@ const command: Command = {
       }
       seasonId = season.id;
       scopeLabel = season.name;
+    } else {
+      edition = (await getCurrentEdition()) ?? undefined;
+      scopeLabel = edition ? `Career — ${edition}` : "Career";
     }
 
-    const entries = await getLeaderboard(seasonId ? "season" : "career", stat, seasonId, limit);
+    const entries = await getLeaderboard(seasonId ? "season" : "career", stat, seasonId, limit, edition);
     if (entries.length === 0) {
       await interaction.reply({ content: "No games recorded yet." });
       return;
@@ -104,8 +121,13 @@ const command: Command = {
   },
 
   async autocomplete(interaction) {
-    const focused = interaction.options.getFocused();
-    const matches = await searchSeasonNames(focused);
+    const focused = interaction.options.getFocused(true);
+    if (focused.name === "edition") {
+      const matches = await searchEditions(focused.value);
+      await interaction.respond(matches.map((name) => ({ name, value: name })));
+      return;
+    }
+    const matches = await searchSeasonNames(focused.value);
     await interaction.respond(matches.map((name) => ({ name, value: name })));
   },
 };

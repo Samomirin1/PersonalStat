@@ -33,10 +33,11 @@ If the bot ever creates a duplicate profile (e.g. two spellings that were too di
 |---|---|---|
 | `/upload screenshot [screenshot2]` | Admin / Lobby Leader | Upload a box score screenshot — the only way to add a game |
 | `/stats gamertag [season]` | Anyone | A player's stats for a season (GP, W-L, PPG, RPG, APG, shooting splits, etc.) — defaults to the current season, or pick any past season by name |
-| `/careerstats gamertag` | Anyone | All-time career stats across every season, same format |
-| `/leaderboard stat [scope] [season] [limit]` | Anyone | Top players by a stat — current season, career, or any specific past season by name |
+| `/careerstats gamertag [edition]` | Anyone | Career stats within the current game version (e.g. 2K27), or pick a past one |
+| `/2k26stats gamertag` | Anyone | Archived career stats from the 2K26 era, frozen |
+| `/leaderboard stat [scope] [season] [edition] [limit]` | Anyone | Top players by a stat — current season, career (current edition), a specific past season, or a specific past edition |
 | `/games [limit]` | Anyone | List recent games and their `game_number` |
-| `/season new name` | Admin | End the current season, start a new one |
+| `/season new name [edition]` | Admin | End the current season, start a new one. Set `edition` only when switching game versions (e.g. 2K27) |
 | `/season list` / `/season current` | Anyone | List seasons / show the active one |
 | `/merge keep duplicate` | Admin | Fold a duplicate profile into another |
 | `/removeplayer gamertag` | Admin | Permanently remove a player and their game stats (e.g. someone left) |
@@ -47,7 +48,13 @@ Admin commands require the **Manage Server** permission, or a specific role set 
 
 ### Rolling to a new season
 
-`/season new name:"Season 2"` never deletes anything — it just marks the current season inactive (with an end date) and starts a fresh active one. `/stats` and `/leaderboard` (without a `season` argument) automatically follow whichever season is active, so player stats effectively "reset" for the new season without losing history. Past seasons stay fully queryable forever: `/stats gamertag season:"Season 1"` and `/leaderboard stat:points season:"Season 1"` work exactly the same as they did while that season was active, and `/careerstats` always reflects every season combined.
+`/season new name:"Season 2"` never deletes anything — it just marks the current season inactive (with an end date) and starts a fresh active one. `/stats` and `/leaderboard` (without a `season` argument) automatically follow whichever season is active, so player stats effectively "reset" for the new season without losing history. Past seasons stay fully queryable forever: `/stats gamertag season:"Season 1"` and `/leaderboard stat:points season:"Season 1"` work exactly the same as they did while that season was active.
+
+### Switching game versions (e.g. 2K26 → 2K27)
+
+Every season carries a game **edition** tag (e.g. `"2K26"`, `"2K27"`). `/careerstats` and `/leaderboard`'s career scope both mean "career within the *current* edition" — so when a new NBA 2K releases, run `/season new name:"Season X" edition:2K27` and everyone's `/careerstats` effectively starts clean for the new game, while everything from the old one stays fully intact and viewable with the `edition` option (`/careerstats gamertag edition:2K26`, `/leaderboard stat:points edition:2K26`).
+
+`/2k26stats` is a dedicated, parameter-free shortcut for exactly that — the frozen archive of everything from the 2K26 era. There's no need to add a new dedicated command for future versions; `edition:2K27`, `edition:2K28`, etc. all just work through `/careerstats` and `/leaderboard` as new editions get created.
 
 ## Setup
 
